@@ -1,9 +1,6 @@
-import {
-  ContentEditor,
-  ContentPreview,
-  PostTitleInput,
-} from "@/features/editor";
+import { ContentEditor, PostTitleInput } from "@/features/editor";
 import EditorActionBar from "@/features/editor/ui/EditorActionBar";
+import EditorSidePanel from "@/features/editor/ui/EditorSidePanel/EditorSidePanelTabs";
 import Divider from "@/shared/ui/Divider";
 
 export default function Write() {
@@ -17,7 +14,9 @@ export default function Write() {
         </div>
         <EditorActionBar />
       </div>
-      <ContentPreview />
+      <div className="w-1/2 h-full">
+        <EditorSidePanel />
+      </div>
     </div>
   );
 }
