@@ -9,7 +9,6 @@ function escapeHtml(text: string) {
 
 export function diffToHtml(original: string, improved: string) {
   const diffs = diff(original, improved);
-  console.log(diffs);
 
   const htmlParts = diffs.map(([type, text]) => {
     if (type === 0) {
