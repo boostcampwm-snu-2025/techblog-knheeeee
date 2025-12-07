@@ -1,0 +1,34 @@
+# Node modules
+node_modules/
+
+# Log files
+npm-debug.log*
+yarn-debug.log*
+.pnpm-debug.log*
+.pnpm-store/
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# Build artifacts
+dist/
+build/
+coverage/
+
+# IDE and OS generated files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Test files
+*.spec.js
+*.test.js
+__tests__/
+
+# Other common files to ignore
+temp/
+tmp/
+*.log
