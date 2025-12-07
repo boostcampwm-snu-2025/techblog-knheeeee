@@ -84,6 +84,15 @@
     }
   }
 
+  .diff-added {
+    background-color: rgba(0, 200, 0, 0.2);
+  }
+
+  .diff-removed {
+    background-color: rgba(255, 0, 0, 0.15);
+    text-decoration: line-through;
+  }
+
   mark {
     background-color: #faf594;
     border-radius: 0.4rem;

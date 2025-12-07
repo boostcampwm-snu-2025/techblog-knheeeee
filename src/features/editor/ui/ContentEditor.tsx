@@ -11,6 +11,8 @@ import { ButtonGroup } from "@/shared/ui/button-group";
 
 import { useEditorStore } from "../model/editorStore";
 import { useSelectedText } from "../model/useSelectedText";
+import { diffToHtml } from "../lib/diffText";
+import { Diff } from "../lib/extension/Diff";
 
 export default function ContentEditor() {
   const { setMarkdownText } = useEditorStore();
@@ -19,6 +21,7 @@ export default function ContentEditor() {
       Document,
       Paragraph,
       Text,
+      Diff,
       Placeholder.configure({
         placeholder: "내용을 입력하세요...",
       }),
@@ -40,7 +43,8 @@ export default function ContentEditor() {
       body: JSON.stringify({ text: selected }),
     });
     const data = await res.json();
-    console.log(data);
+    const html = diffToHtml(selected, data.improvedText);
+    editor?.chain().focus().deleteSelection().insertContent(html).run();
   }
 
   return (
