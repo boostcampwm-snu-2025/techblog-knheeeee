@@ -2,14 +2,13 @@
 
 import { type Editor } from "@tiptap/core";
 import { BubbleMenu } from "@tiptap/react/menus";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { diffToHtml } from "../../diffText";
 import { SwitchCase } from "@/shared/ui/SwitchCase";
 import { ButtonGroup } from "@/shared/ui/button-group";
 import { Button } from "@/shared/ui/button";
 import { Spinner } from "@/shared/ui/spinner";
-
-type Status = "idle" | "loading" | "result";
+import type { AiStatus } from "../AITool";
 
 function IdleMenu({ onImprove }: { onImprove: () => void }) {
   return (
@@ -41,15 +40,28 @@ function ResultMenu({
   return (
     <ButtonGroup>
       <Button onClick={onAccept}>Accept</Button>
-      <Button onClick={onDiscard}>Discard</Button>
+      <Button variant="outline" onClick={onDiscard}>
+        Discard
+      </Button>
     </ButtonGroup>
   );
 }
 
 export function AIToolMenu({ editor }: { editor: Editor }) {
-  const [status, setStatus] = useState<Status>("idle");
-  const [originalText, setOriginalText] = useState<string | null>(null);
-  const [improvedText, setImprovedText] = useState<string | null>(null);
+  const [status, setStatus] = useState<AiStatus>(
+    editor.storage.aiTool?.status ?? "idle"
+  );
+
+  useEffect(() => {
+    const handler = () => {
+      setStatus(editor.storage.aiTool.status);
+    };
+
+    editor.on("transaction", handler);
+    return () => {
+      editor.off("transaction", handler);
+    };
+  }, [editor]);
 
   const handleImproveClick = useCallback(async () => {
     if (!editor) return;
@@ -57,12 +69,10 @@ export function AIToolMenu({ editor }: { editor: Editor }) {
     const { from, to } = editor.state.selection;
     if (from === to) return;
 
-    const selected = editor.state.doc.textBetween(from, to, "");
+    const selected = editor.state.doc.textBetween(from, to, "\n");
     if (!selected) return;
 
-    setStatus("loading");
-    setOriginalText(selected);
-    setImprovedText(null);
+    editor.commands.aiSetStatus("loading");
 
     try {
       const res = await fetch("/api/editor/improve", {
@@ -71,75 +81,43 @@ export function AIToolMenu({ editor }: { editor: Editor }) {
       });
 
       const data = await res.json();
-      const improved = data.improvedText as string | undefined;
+      const improved = (data.improvedText as string | undefined)?.trim();
 
-      if (!improved) {
-        setStatus("idle");
+      if (!improved || improved.length === 0) {
+        editor.commands.aiSetStatus("idle");
         return;
       }
 
       const diffHtml = diffToHtml(selected, improved);
 
-      editor
-        .chain()
-        .focus()
-        .setTextSelection({ from, to })
-        .deleteSelection()
-        .insertContent(diffHtml)
-        .run();
-
-      const endPos = editor.state.selection.to;
-      editor.commands.setTextSelection({ from, to: endPos });
-
-      setImprovedText(improved);
-      setStatus("result");
+      editor.commands.aiApplyDiff({
+        from,
+        to,
+        originalText: selected,
+        improvedText: improved,
+        diffHtml,
+      });
     } catch (e) {
       console.error(e);
-      setStatus("idle");
+      editor.commands.aiSetStatus("idle");
     }
   }, [editor]);
 
   const handleAccept = useCallback(() => {
     if (!editor) return;
-    if (!improvedText) return;
-
-    const state = editor.state;
-    const { $from } = state.selection;
-
-    const fromPos = $from.start();
-    const toPos = $from.end();
-
-    editor
-      .chain()
-      .focus()
-      .insertContentAt({ from: fromPos, to: toPos }, improvedText)
-      .run();
-
-    setStatus("idle");
-    setOriginalText(null);
-    setImprovedText(null);
-  }, [editor, improvedText]);
+    editor.commands.aiAcceptDiff();
+  }, [editor]);
 
   const handleDiscard = useCallback(() => {
     if (!editor) return;
-    if (!originalText) return;
+    editor.commands.aiDiscardDiff();
+  }, [editor]);
 
-    const state = editor.state;
-    const { $from } = state.selection;
+  const shouldShow = editor.state.selection.from !== editor.state.selection.to;
 
-    const fromPos = $from.start();
-    const toPos = $from.end();
-
-    editor
-      .chain()
-      .focus()
-      .insertContentAt({ from: fromPos, to: toPos }, originalText)
-      .run();
-
-    setStatus("idle");
-    setOriginalText(null);
-    setImprovedText(null);
-  }, [editor, originalText]);
+  if (!shouldShow) {
+    return null;
+  }
 
   return (
     <BubbleMenu editor={editor}>

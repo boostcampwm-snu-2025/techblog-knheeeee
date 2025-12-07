@@ -1,111 +1,173 @@
-import { Editor, Extension } from "@tiptap/core";
+import { Extension } from "@tiptap/core";
+
+export type AiStatus = "idle" | "loading" | "result";
+
+interface AiToolStorage {
+  status: AiStatus;
+  originalText: string | null;
+  improvedText: string | null;
+  diffFrom: number | null;
+  diffTo: number | null;
+}
+
+interface AiApplyDiffOptions {
+  from: number;
+  to: number;
+  originalText: string;
+  improvedText: string;
+  diffHtml: string;
+}
 
 declare module "@tiptap/core" {
   interface Commands<ReturnType> {
     aiTool: {
-      improveSelection: () => ReturnType;
-      acceptDiff: () => ReturnType;
-      discardDiff: () => ReturnType;
+      aiSetStatus: (status: AiStatus) => ReturnType;
+      aiApplyDiff: (options: AiApplyDiffOptions) => ReturnType;
+      aiAcceptDiff: () => ReturnType;
+      aiDiscardDiff: () => ReturnType;
+      aiReset: () => ReturnType;
     };
   }
 
   interface Storage {
-    aiTool: {
-      status: "idle" | "loading" | "result";
-      diffHtml: string | null;
-      originalText: string | null;
-      improvedText: string | null;
-      range: { from: number; to: number } | null;
-    };
+    aiTool: AiToolStorage;
   }
 }
 
 export const AITool = Extension.create({
   name: "aiTool",
 
-  addStorage() {
+  addStorage(): AiToolStorage {
     return {
-      status: "idle" as "idle" | "loading" | "result",
-      diffHtml: null as string | null,
-      originalText: null as string | null,
-      improvedText: null as string | null,
-      range: null as { from: number; to: number } | null,
+      status: "idle",
+      originalText: null,
+      improvedText: null,
+      diffFrom: null,
+      diffTo: null,
     };
   },
 
   addCommands() {
     return {
-      improveSelection:
-        () =>
-        ({ editor }: { editor: Editor }) => {
-          const { from, to } = editor.state.selection;
-          const selected = editor.state.doc.textBetween(from, to, "");
+      aiSetStatus:
+        (status: AiStatus) =>
+        ({ editor }) => {
+          editor.storage.aiTool.status = status;
+          editor.view.dispatch(editor.state.tr);
+          return true;
+        },
 
-          if (!selected) return false;
+      aiApplyDiff:
+        ({
+          from,
+          to,
+          originalText,
+          improvedText,
+          diffHtml,
+        }: AiApplyDiffOptions) =>
+        ({ editor }) => {
+          const storage = editor.storage.aiTool;
 
-          editor.storage.aiTool.status = "loading";
-          editor.storage.aiTool.originalText = selected;
-          editor.storage.aiTool.diffHtml = null;
-          editor.storage.aiTool.improvedText = null;
-          editor.storage.aiTool.range = { from, to };
+          storage.status = "result";
+          storage.originalText = originalText;
+          storage.improvedText = improvedText;
+
+          editor
+            .chain()
+            .focus()
+            .setTextSelection({ from, to })
+            .deleteSelection()
+            .insertContent(diffHtml)
+            .run();
+
+          const { from: diffFrom, to: diffTo } = editor.state.selection;
+          storage.diffFrom = diffFrom;
+          storage.diffTo = diffTo;
+
+          editor.view.dispatch(editor.state.tr);
 
           return true;
         },
 
-      acceptDiff:
+      aiAcceptDiff:
         () =>
-        ({ editor }: { editor: Editor }) => {
-          const improvedText = editor.storage.aiTool.improvedText;
-          const range = editor.storage.aiTool.range;
+        ({ editor }) => {
+          const storage = editor.storage.aiTool;
+          const { diffFrom, diffTo, improvedText } = storage;
 
-          if (!improvedText || !range) return false;
-          if (!editor.view) return false;
+          if (
+            improvedText == null ||
+            diffFrom == null ||
+            diffTo == null ||
+            diffFrom === diffTo
+          ) {
+            return false;
+          }
 
-          const state = editor.view.state;
+          editor
+            .chain()
+            .focus()
+            .setTextSelection({ from: diffFrom, to: diffTo })
+            .deleteSelection()
+            .insertContent(improvedText)
+            .run();
 
-          let tr = state.tr;
-          tr = tr.replaceWith(
-            range.from,
-            range.to,
-            state.schema.text(improvedText)
-          );
+          storage.status = "idle";
+          storage.originalText = null;
+          storage.improvedText = null;
+          storage.diffFrom = null;
+          storage.diffTo = null;
 
-          editor.view.dispatch(tr);
-
-          editor.storage.aiTool.status = "idle";
-          editor.storage.aiTool.diffHtml = null;
-          editor.storage.aiTool.originalText = null;
-          editor.storage.aiTool.improvedText = null;
-          editor.storage.aiTool.range = null;
+          editor.view.dispatch(editor.state.tr);
 
           return true;
         },
 
-      discardDiff:
+      aiDiscardDiff:
         () =>
-        ({ editor }: { editor: Editor }) => {
-          const originalText = editor.storage.aiTool.originalText;
-          const range = editor.storage.aiTool.range;
+        ({ editor }) => {
+          const storage = editor.storage.aiTool;
+          const { diffFrom, diffTo, originalText } = storage;
 
-          if (!originalText || !range) return false;
-          if (!editor.view) return false;
+          if (
+            originalText == null ||
+            diffFrom == null ||
+            diffTo == null ||
+            diffFrom === diffTo
+          ) {
+            return false;
+          }
 
-          const state = editor.view.state;
+          editor
+            .chain()
+            .focus()
+            .setTextSelection({ from: diffFrom, to: diffTo })
+            .deleteSelection()
+            .insertContent(originalText)
+            .run();
 
-          let tr = state.tr;
-          tr = tr.replaceWith(
-            range.from,
-            range.to,
-            state.schema.text(originalText)
-          );
+          storage.status = "idle";
+          storage.originalText = null;
+          storage.improvedText = null;
+          storage.diffFrom = null;
+          storage.diffTo = null;
 
-          editor.view.dispatch(tr);
+          editor.view.dispatch(editor.state.tr);
 
-          editor.storage.aiTool.status = "idle";
-          editor.storage.aiTool.diffHtml = null;
-          editor.storage.aiTool.originalText = null;
-          editor.storage.aiTool.improvedText = null;
-          editor.storage.aiTool.range = null;
+          return true;
+        },
+
+      aiReset:
+        () =>
+        ({ editor }) => {
+          const storage = editor.storage.aiTool;
+          storage.status = "idle";
+          storage.originalText = null;
+          storage.improvedText = null;
+          storage.diffFrom = null;
+          storage.diffTo = null;
+
+          editor.view.dispatch(editor.state.tr);
 
           return true;
         },
