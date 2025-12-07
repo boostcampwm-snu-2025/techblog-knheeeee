@@ -1,6 +1,6 @@
 "use client";
 
-import { cn } from "@/shared/lib/utils";
+import { cn } from "@/shared/ui/lib/utils";
 import { useEditorStore } from "../model/editorStore";
 
 interface PostTitleInputProps {
