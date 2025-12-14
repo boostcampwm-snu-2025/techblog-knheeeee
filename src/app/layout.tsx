@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import "./tiptap.css";
 import Header from "@/widgets/Header";
+import { OverlayProvider } from "overlay-kit";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -25,13 +26,15 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="ko" className="h-full">
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased h-full flex flex-col`}
-      >
-        <Header />
-        <main className="flex-1 overflow-y-auto">{children}</main>
-      </body>
-    </html>
+    <OverlayProvider>
+      <html lang="ko" className="h-full">
+        <body
+          className={`${geistSans.variable} ${geistMono.variable} antialiased h-full flex flex-col`}
+        >
+          <Header />
+          <main className="flex-1 overflow-y-auto">{children}</main>
+        </body>
+      </html>
+    </OverlayProvider>
   );
 }
