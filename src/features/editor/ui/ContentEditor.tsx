@@ -11,7 +11,7 @@ import { Diff } from "../lib/extension/Diff";
 import { AITool } from "../lib/extension/AITool";
 import { AIToolMenu } from "../lib/extension/ui/AIToolMenu/AIToolMenu";
 
-export default function ContentEditor() {
+export function ContentEditor() {
   const { setMarkdownText } = useEditorStore();
   const editor = useEditor({
     extensions: [
