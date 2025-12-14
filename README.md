@@ -1,36 +1,141 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+## Techblog-knheeeee
 
-## Getting Started
+개발자가 **기술 블로그 글을 쓰는 전 과정**을 하나의 화면에서 처리할 수 있도록 만들고 있는 개인 프로젝트입니다.
 
-First, run the development server:
+이 프로젝트의 목표는, 기존 블로그/에디터에서 반복되던 다음과 같은 상황을 줄이는 것입니다.
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+- 글을 쓰다가 **자료 검색을 위해 탭을 왔다 갔다** 하는 일
+- 문장을 다듬기 위해 **AI에게 복사 → 붙여넣기 → 다시 복사 → 붙여넣기**를 반복하는 일
+- 다이어그램, 썸네일, 이미지 등을 그리기 위해 **Excalidraw, Figma 같은 도구로 계속 넘어갔다 오는 일**
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+즉, "글을 쓰는 행위" 자체에만 집중할 수 있도록, **검색 → 초안 작성 → AI 교정 → 미리보기**가 한 화면에서 이어지는 경험을 만드는 것이 목표입니다.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+---
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## 이 서비스가 해결하려는 문제
 
-## Learn More
+기존 블로그 플랫폼(예: velog)을 사용할 때, 저는 특히 이런 점들이 불편했습니다.
 
-To learn more about Next.js, take a look at the following resources:
+- **외부 자료를 많이 참고해야 하는데**, 브라우저 탭을 계속 바꿔가며 보게 됨
+- 문장 교정, 요약, 개요 작성을 위해 **AI에게 텍스트를 계속 복붙해야 하는 번거로움**
+- 다이어그램, 스케치, 썸네일 이미지를 만들기 위해 **에디터 밖으로 자꾸 나가야 하는 흐름**
+- **방문자 통계가 부정확하거나 부족해서**, 글을 어떻게 읽고 있는지 파악하기 어려움
+- 태그가 **`Frontend`, `frontend`, `FE` 같이 중복/유사 태그**로 흩어지는 문제
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+이 프로젝트는 그중에서도 **“작성자 입장에서 글을 쓰는 과정”**에 먼저 집중해서 해결하고 있습니다.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+---
 
-## Deploy on Vercel
+## 현 버전에서 할 수 있는 것
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+### 1. 통합 글쓰기 화면
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- **홈 화면(`/`)에서 `글 쓰기` 버튼**을 누르면 `/write` 페이지의 에디터로 이동합니다.
+- `/write` 페이지에서 한 화면 안에 다음 요소들이 배치되어 있습니다.
+  - **제목 입력 필드**: 작성 중인 글의 제목을 입력
+  - **본문 에디터**: Tiptap 기반의 리치 텍스트 에디터
+  - **우측 사이드 패널**:
+    - `미리보기` 탭: 현재 작성 중인 내용을 읽기 전용으로 확인
+
+→ 요약하면, **왼쪽에서 글을 쓰고, 오른쪽에서 그 결과를 바로 미리보는 구조**입니다.
+
+### 2. AI 기반 문장 교정 (버블 메뉴)
+
+이 프로젝트의 핵심적인 실험 포인트는 **“에디터 안에 자연스럽게 녹아든 AI 교정 경험”**입니다.
+
+- 본문에서 문장을 드래그하면, 선택 영역 위에 **버블 메뉴(Bubble Menu)**가 떠오릅니다.
+- 여기서 **`표현 다듬기` 버튼**을 누르면:
+  - 선택한 텍스트가 백엔드 API(`/api/editor/improve`)로 전달되고,
+  - OpenAI 모델(`gpt-4o-mini`)이 **원문의 의미를 유지한 채로** 문장을 더 자연스럽게 다듬습니다.
+- 결과는 다음과 같은 흐름으로 보여집니다.
+  - AI가 교정하는 동안: "AI가 문장을 교정하는 중..." 이라는 상태 표시
+  - 교정이 끝나면:
+    - 원문과 수정된 문장을 비교할 수 있도록 **diff 형태로 하이라이트**
+    - `Accept` 버튼으로 교정 결과를 적용하거나, `Discard`로 원문을 유지할 수 있음
+- 만약 AI가 "수정할 필요가 없다"고 판단하면,
+  - **원문을 그대로 유지**하고,
+  - 화면 하단에 "수정할 내용이 없습니다."라는 토스트 메시지가 잠깐 뜹니다.
+
+핵심은, **"텍스트 → 복사 → 다른 AI 도구 → 다시 복사 → 에디터로 돌아오기"라는 과정을 없애고**,
+
+> "그냥 선택하고, 버튼을 누르면, 바로 그 자리에서 문장이 다듬어진다"
+
+라는 경험을 제공하는 것입니다.
+
+### 3. 실시간 미리보기
+
+- 우측 `미리보기` 탭에서는 **사용자가 작성한 것과 동일한 내용을 읽기 전용 에디터로 렌더링**합니다.
+- 즉, "내가 지금 쓰고 있는 글이 독자에게는 어떻게 보일까"를 **별도의 페이지 이동 없이 바로 확인**할 수 있습니다.
+
+---
+
+## 기술 스택
+
+- **Framework**: Next.js (App Router)
+- **Language**: TypeScript
+- **Editor**: Tiptap (커스텀 Extension으로 AI/Diff 기능 구현)
+- **State Management**: Zustand
+- **AI**: OpenAI API (Chat Completions, `gpt-4o-mini`)
+- **UI / 스타일**: Tailwind CSS, Radix UI, overlay-kit, shadcn
+
+---
+
+## 로컬에서 실행해 보기
+
+1. **의존성 설치**
+
+   ```bash
+   yarn install
+   # 또는
+   npm install
+   ```
+
+2. **환경 변수 설정**
+
+   프로젝트 루트에 `.env.local` 파일을 만들고 다음 값을 설정합니다.
+
+   ```bash
+   OPENAI_API_KEY=your_openai_api_key_here
+   ```
+
+3. **개발 서버 실행**
+
+   ```bash
+   yarn dev
+   # 또는
+   npm run dev
+   ```
+
+   브라우저에서 `http://localhost:3000`에 접속하면 됩니다.
+
+   - `/` : 홈 화면 (글 쓰기 진입 버튼)
+   - `/write` : 통합 글쓰기 워크스페이스
+
+## 배포된 사이트 체험하기
+
+로컬에서 실행이 어려운 경우 아래 배포된 사이트에서 체험이 가능합니다. (바로 에디터 화면으로 연결됩니다)
+
+https://techblog-knheeeee.vercel.app/write
+
+---
+
+## 프로젝트 구조 (요약)
+
+코드를 자세히 보고 싶은 사람을 위해, 핵심 폴더만 간단히 정리해 두었습니다.
+
+- **`src/app`**
+  - `page.tsx`: 홈 (`글 쓰기` 버튼)
+  - `write/page.tsx`: 작성 워크스페이스 페이지
+  - `api/editor/improve/route.ts`: AI 문장 교정 API
+- **`src/features/editor`**
+  - `ui/ContentEditor.tsx`: 본문 에디터
+  - `ui/PostTitleInput.tsx`: 제목 입력 필드
+  - `ui/EditorSidePanel/*`: 미리보기/외부 검색/AI Chat 탭
+  - `lib/extension/*`: Tiptap용 AI/Diff 확장 및 버블 메뉴 UI
+  - `lib/improveText.ts`: OpenAI를 사용한 문장 교정 로직
+  - `model/editorStore.ts`: 제목/본문 상태 관리
+- **`src/shared`**
+  - `ui/*`: 공용 UI 컴포넌트 (버튼, 다이얼로그, 탭 등)
+  - `utils/openai.ts`: OpenAI 클라이언트 설정
+- **`src/widgets/Header.tsx`**
+  - 상단 공통 헤더
