@@ -9,7 +9,7 @@ import Text from "@tiptap/extension-text";
 import { useEditorStore } from "../model/editorStore";
 import { Diff } from "../lib/extension/Diff";
 import { AITool } from "../lib/extension/AITool";
-import { AIToolMenu } from "../lib/extension/ui/AIToolMenu";
+import { AIToolMenu } from "../lib/extension/ui/AIToolMenu/AIToolMenu";
 
 export default function ContentEditor() {
   const { setMarkdownText } = useEditorStore();

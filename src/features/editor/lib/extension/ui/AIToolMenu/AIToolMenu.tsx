@@ -1,50 +1,13 @@
-"use client";
-
 import { type Editor } from "@tiptap/core";
 import { BubbleMenu } from "@tiptap/react/menus";
 import { useCallback, useState } from "react";
-import { diffToHtml } from "../../diffText";
+import { diffToHtml } from "../../../diffText";
 import { SwitchCase } from "@/shared/ui/SwitchCase";
-import { ButtonGroup } from "@/shared/ui/button-group";
-import { Button } from "@/shared/ui/button";
-import { Spinner } from "@/shared/ui/spinner";
+import { IdleMenu } from "./IdleMenu";
+import { LoadingMenu } from "./LoadingMenu";
+import { ResultMenu } from "./ResultMenu";
 
 type Status = "idle" | "loading" | "result";
-
-function IdleMenu({ onImprove }: { onImprove: () => void }) {
-  return (
-    <ButtonGroup>
-      <Button variant="outline" onClick={onImprove}>
-        표현 다듬기
-      </Button>
-      <Button variant="outline">AI에게 질문하기</Button>
-    </ButtonGroup>
-  );
-}
-
-function LoadingMenu() {
-  return (
-    <div className="px-4 py-2 text-sm text-gray-500 flex gap-2 items-center bg-white border rounded-md">
-      <Spinner />
-      AI가 문장을 교정하는 중...
-    </div>
-  );
-}
-
-function ResultMenu({
-  onAccept,
-  onDiscard,
-}: {
-  onAccept: () => void;
-  onDiscard: () => void;
-}) {
-  return (
-    <ButtonGroup>
-      <Button onClick={onAccept}>Accept</Button>
-      <Button onClick={onDiscard}>Discard</Button>
-    </ButtonGroup>
-  );
-}
 
 export function AIToolMenu({ editor }: { editor: Editor }) {
   const [status, setStatus] = useState<Status>("idle");
