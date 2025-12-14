@@ -86,11 +86,23 @@
 
   .diff-added {
     background-color: rgba(0, 200, 0, 0.2);
+    padding: 0.25rem;
   }
 
   .diff-removed {
     background-color: rgba(255, 0, 0, 0.15);
     text-decoration: line-through;
+    padding: 0.25rem;
+  }
+
+  ::selection {
+    background: rgba(0, 0, 0, 0.12);
+    color: inherit;
+  }
+
+  .diff-added::selection,
+  .diff-removed::selection {
+    background: rgba(0, 0, 0, 0.08);
   }
 
   mark {
